@@ -47,14 +47,21 @@ jobs:
         name: XUnity-LLMTranslate
         path: dist
 
+    - name: Generate tag name
+      id: generate_tag
+      run: |
+        CURRENT_DATE=$(date -u +'%Y%m%d%H%M%S')
+        echo "Generated tag: v$CURRENT_DATE"
+        echo "tag_name=v$CURRENT_DATE" >> $GITHUB_OUTPUT
+
     - name: Create release
       id: create_release
       uses: actions/create-release@v1  # 使用正确版本的 create-release 动作
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v$(date +'%Y%m%d%H%M%S')  # 使用当前时间作为标签
-        release_name: Release v$(date +'%Y%m%d%H%M%S')
+        tag_name: ${{ steps.generate_tag.outputs.tag_name }}  # 使用生成的标签
+        release_name: Release ${{ steps.generate_tag.outputs.tag_name }}
         draft: false
         prerelease: false
 
