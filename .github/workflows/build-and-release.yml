@@ -1,0 +1,68 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # 当推送以 'v' 开头的标签时触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4  # 使用最新版本的 checkout 动作
+
+    - name: Set up Python
+      uses: actions/setup-python@v5  # 使用最新版本的 setup-python 动作
+      with:
+        python-version: '3.x'  # 使用最新的稳定 Python 版本
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt  # 假设你的依赖库在 requirements.txt 中
+
+    - name: Install PyInstaller
+      run: pip install pyinstaller
+
+    - name: Build executable
+      run: pyinstaller --onefile XUnity-LLMTranslate.py
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4  # 使用最新版本的 upload-artifact 动作
+      with:
+        name: XUnity-LLMTranslate
+        path: dist/XUnity-LLMTranslate
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v4  # 使用最新版本的 download-artifact 动作
+      with:
+        name: XUnity-LLMTranslate
+        path: dist
+
+    - name: Create release
+      id: create_release
+      uses: actions/create-release@v2  # 使用最新版本的 create-release 动作
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v$(date +'%Y%m%d%H%M%S')  # 使用当前时间作为标签
+        release_name: Release v$(date +'%Y%m%d%H%M%S')
+        draft: false
+        prerelease: false
+
+    - name: Upload release asset
+      uses: actions/upload-release-asset@v2  # 使用最新版本的 upload-release-asset 动作
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: dist/XUnity-LLMTranslate
+        asset_name: XUnity-LLMTranslate.exe
+        asset_content_type: application/octet-stream
