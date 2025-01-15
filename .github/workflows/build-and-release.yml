@@ -49,7 +49,7 @@ jobs:
 
     - name: Create release
       id: create_release
-      uses: actions/create-release@v2  # 使用最新版本的 create-release 动作
+      uses: actions/create-release@v1  # 使用正确版本的 create-release 动作
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
@@ -59,7 +59,7 @@ jobs:
         prerelease: false
 
     - name: Upload release asset
-      uses: actions/upload-release-asset@v2  # 使用最新版本的 upload-release-asset 动作
+      uses: actions/upload-release-asset@v1  # 使用正确版本的 upload-release-asset 动作
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
