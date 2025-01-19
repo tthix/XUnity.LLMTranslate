@@ -81,7 +81,7 @@ def setup():
 # 初始化OpenAI客户端
 client, MODEL, TEMPERATURE, HISTORY_COUNT, SYSTEM_MESSAGE = setup()
 
-# 用于存储历史对话的列表
+# 用于存储历史对话的列表，按组存储（每组包含用户输入和模型回复）
 history = []
 
 # 定义重试机制
@@ -124,6 +124,7 @@ def translate():
         messages = [
             {"role": "system", "content": SYSTEM_MESSAGE},
         ]
+        # 添加历史对话记录（按组添加）
         for user_msg, assistant_msg in history:
             messages.append({"role": "user", "content": user_msg})
             messages.append({"role": "assistant", "content": assistant_msg})
@@ -137,6 +138,11 @@ def translate():
 
         # 将翻译结果存入缓存
         cache.set(cache_key, translated_text, timeout=60)
+
+        # 更新历史对话记录（按组存储）
+        history.append((text, translated_text))
+        if len(history) > HISTORY_COUNT:
+            history.pop(0)  # 如果历史记录超过限制，移除最早的一组记录
 
         # 返回翻译结果
         return translated_text
