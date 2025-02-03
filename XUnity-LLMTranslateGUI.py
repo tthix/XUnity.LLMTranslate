@@ -125,7 +125,7 @@ class TranslationHandler(BaseHTTPRequestHandler):
                 messages=messages,
                 temperature=config['temperature']
             )
-
+            # 这里如果返回结果格式异常，会触发异常
             translated = response.choices[0].message.content
 
             # 更新上下文队列
@@ -306,10 +306,20 @@ class TranslationApp:
                 base_url=self.api_address.get(),
                 api_key=self.api_key.get()
             )
-            client.chat.completions.create(
+            response = client.chat.completions.create(
                 model=self.model_name.get(),
                 messages=[{"role": "user", "content": "测试连接"}]
             )
+            # 校验返回结果是否符合预期格式
+            if response is None:
+                raise ValueError("返回结果为空")
+            try:
+                # 尝试获取响应内容
+                translated = response.choices[0].message.content
+            except Exception as ex:
+                raise ValueError("处理错误:" + str(ex))
+            if not translated:
+                raise ValueError("响应内容为空")
             self.log_queue.put("配置测试成功！")
         except Exception as e:
             self.log_queue.put(f"配置测试失败：{str(e)}")
