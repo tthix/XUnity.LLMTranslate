@@ -9,6 +9,7 @@ from openai import OpenAI
 import queue
 from collections import deque
 import hashlib
+import requests  # 新增，用于获取模型列表
 
 class ConfigManager:
     """配置管理器，负责配置文件的读写操作"""
@@ -32,7 +33,7 @@ class ConfigManager:
         
         return {
             'api_address': self.config.get('Settings', 'api_address', fallback='https://api.openai.com/v1'),
-            'api_key': self.config.get('Settings', 'api_key', fallback=''),
+            'api_key': self.config.get('Settings', 'api_key', fallback='sk-11111111111111111'),
             'model_name': self.config.get('Settings', 'model_name', fallback='gpt-3.5-turbo'),
             'port': self.config.get('Settings', 'port', fallback='6800'),
             'system_prompt': self.config.get('Settings', 'system_prompt', fallback=default_prompt),
@@ -172,40 +173,45 @@ class TranslationApp:
         config_frame = ttk.LabelFrame(main_frame, text="API配置")
         config_frame.grid(row=0, column=0, sticky="nsew", pady=5)
 
-        # 前三行：API地址、API密钥、模型名称（各占一行）
-        basic_entries = [
-            ('API地址:', 'api_address', 0),
-            ('API密钥:', 'api_key', 1),
-            ('模型名称:', 'model_name', 2)
-        ]
-        for text, var_name, row in basic_entries:
-            ttk.Label(config_frame, text=text).grid(row=row, column=0, sticky="e", pady=2)
-            entry = ttk.Entry(config_frame)
-            entry.grid(row=row, column=1, padx=5, pady=2, sticky="ew", columnspan=2)
-            setattr(self, var_name, entry)
+        # 第一行：API地址
+        ttk.Label(config_frame, text="API地址:").grid(row=0, column=0, sticky="e", pady=2)
+        self.api_address = ttk.Entry(config_frame)
+        self.api_address.grid(row=0, column=1, padx=5, pady=2, sticky="ew", columnspan=2)
 
-        # 新增一行，横向排列“监听端口”、“温度”和“上下文数量”
+        # 第二行：API密钥
+        ttk.Label(config_frame, text="API密钥:").grid(row=1, column=0, sticky="e", pady=2)
+        self.api_key = ttk.Entry(config_frame)
+        self.api_key.grid(row=1, column=1, padx=5, pady=2, sticky="ew", columnspan=2)
+
+        # 第三行：模型名称（下拉框）及获取模型列表按钮
+        ttk.Label(config_frame, text="模型名称:").grid(row=2, column=0, sticky="e", pady=2)
+        self.model_name = ttk.Combobox(config_frame)
+        # 初始时下拉框值为空，用户可手动输入
+        self.model_name['values'] = []
+        self.model_name.set(self.config['model_name'])
+        self.model_name.grid(row=2, column=1, padx=5, pady=2, sticky="ew")
+        self.get_models_btn = ttk.Button(config_frame, text="获取模型列表", command=self.fetch_model_list)
+        self.get_models_btn.grid(row=2, column=2, padx=5, pady=2)
+
+        # 第四行：横向排列“监听端口”、“温度”和“上下文数量”
         port_frame = ttk.Frame(config_frame)
         port_frame.grid(row=3, column=0, columnspan=3, sticky="w", pady=2)
-        # 监听端口
         ttk.Label(port_frame, text="监听端口:").grid(row=0, column=0, padx=(0, 2))
         self.port = ttk.Entry(port_frame, width=8)
         self.port.grid(row=0, column=1, padx=(0, 10))
-        # 温度
         ttk.Label(port_frame, text="温度:").grid(row=0, column=2, padx=(0, 2))
         self.temperature = ttk.Spinbox(port_frame, from_=0.0, to=1.0, increment=0.1, width=5)
         self.temperature.grid(row=0, column=3, padx=(0, 10))
-        # 上下文数量
         ttk.Label(port_frame, text="上下文数量:").grid(row=0, column=4, padx=(0, 2))
         self.context_num = ttk.Spinbox(port_frame, from_=0, to=10, width=5)
         self.context_num.grid(row=0, column=5)
 
-        # 系统提示框（放在横排配置项下方）
+        # 第五行：系统提示框（放在横排配置项下方）
         ttk.Label(config_frame, text="系统提示:").grid(row=4, column=0, sticky="ne", pady=2)
         self.system_prompt = scrolledtext.ScrolledText(config_frame, height=8, wrap=tk.WORD)
         self.system_prompt.grid(row=4, column=1, padx=5, pady=5, sticky="nsew", columnspan=2)
 
-        # 前置文本框
+        # 第六行：前置文本框
         ttk.Label(config_frame, text="前置文本:").grid(row=5, column=0, sticky="e", pady=2)
         self.pre_prompt = ttk.Entry(config_frame)
         self.pre_prompt.grid(row=5, column=1, padx=5, pady=2, sticky="ew", columnspan=2)
@@ -213,7 +219,6 @@ class TranslationApp:
         # 按钮区域
         btn_frame = ttk.Frame(main_frame)
         btn_frame.grid(row=1, column=0, pady=5, sticky="ew")
-        
         buttons = [
             ('启动服务', self.start_server),
             ('停止服务', self.stop_server),
@@ -239,11 +244,32 @@ class TranslationApp:
         config_frame.columnconfigure(1, weight=1)
         config_frame.rowconfigure(4, weight=1)
 
+    def fetch_model_list(self):
+        """通过API地址和API密钥获取模型列表，并更新下拉框"""
+        config = self.get_config()
+        try:
+            # 构造请求URL，注意去除尾部斜杠再加上 "/models"
+            url = config['api_address'].rstrip("/") + "/models"
+            headers = {"Authorization": f"Bearer {config['api_key']}"}
+            r = requests.get(url, headers=headers, timeout=10)
+            if r.status_code != 200:
+                raise Exception(f"HTTP错误 {r.status_code}: {r.text}")
+            data = r.json()
+            models = [item['id'] for item in data.get('data', [])]
+            if not models:
+                raise Exception("没有获取到模型列表")
+            # 更新下拉框
+            self.model_name['values'] = models
+            self.model_name.set(models[0])
+            self.log_queue.put("模型列表获取成功！")
+        except Exception as e:
+            self.log_queue.put(f"获取模型列表失败：{str(e)}")
+
     def load_config(self):
         """加载配置到界面"""
         self.api_address.insert(0, self.config['api_address'])
         self.api_key.insert(0, self.config['api_key'])
-        self.model_name.insert(0, self.config['model_name'])
+        self.model_name.set(self.config['model_name'])
         self.port.insert(0, self.config['port'])
         self.temperature.insert(0, str(self.config['temperature']))
         self.pre_prompt.insert(0, self.config['pre_prompt'])
@@ -256,12 +282,10 @@ class TranslationApp:
             context_num = int(self.context_num.get())
         except ValueError:
             context_num = 5
-
         try:
             temperature = float(self.temperature.get())
         except ValueError:
             temperature = 0.7
-            
         return {
             'api_address': self.api_address.get(),
             'api_key': self.api_key.get(),
@@ -284,7 +308,6 @@ class TranslationApp:
             self.server_thread = threading.Thread(target=self.server.serve_forever)
             self.server_thread.daemon = True
             self.server_thread.start()
-            
             self.toggle_controls(True)
             self.log_queue.put(f"服务已启动，端口：{config['port']}")
         except Exception as e:
@@ -308,13 +331,12 @@ class TranslationApp:
             )
             response = client.chat.completions.create(
                 model=self.model_name.get(),
-                messages=[{"role": "user", "content": "测试连接"}]
+                messages=[{"role": "user", "content": "你是谁？"}]
             )
             # 校验返回结果是否符合预期格式
             if response is None:
                 raise ValueError("返回结果为空")
             try:
-                # 尝试获取响应内容
                 translated = response.choices[0].message.content
             except Exception as ex:
                 raise ValueError("处理错误:" + str(ex))
@@ -333,9 +355,8 @@ class TranslationApp:
         """切换控件状态"""
         state = "disabled" if running else "normal"
         self.stop_btn.config(state="normal" if running else "disabled")
-        
-        for widget in [self.api_address, self.api_key, self.model_name, 
-                      self.port, self.temperature, self.pre_prompt, self.system_prompt, self.context_num]:
+        for widget in [self.api_address, self.api_key, self.model_name,
+                       self.port, self.temperature, self.pre_prompt, self.system_prompt, self.context_num]:
             widget.config(state=state)
 
     def update_log(self):
