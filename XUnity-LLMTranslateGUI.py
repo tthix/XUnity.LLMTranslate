@@ -9,7 +9,8 @@ from openai import OpenAI
 import queue
 from collections import deque
 import hashlib
-import requests  # 新增，用于获取模型列表
+import requests  # 用于获取模型列表
+import re  # 新增，用于过滤思维链
 
 class ConfigManager:
     """配置管理器，负责配置文件的读写操作"""
@@ -128,6 +129,9 @@ class TranslationHandler(BaseHTTPRequestHandler):
             )
             # 这里如果返回结果格式异常，会触发异常
             translated = response.choices[0].message.content
+
+            # 过滤掉思维链，删除所有 <think>...</think> 标签内的内容
+            translated = re.sub(r'<think>.*?</think>', '', translated, flags=re.DOTALL).strip()
 
             # 更新上下文队列
             with self._lock:
