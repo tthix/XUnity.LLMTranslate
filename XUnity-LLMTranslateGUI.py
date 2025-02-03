@@ -119,7 +119,7 @@ class TranslationHandler(BaseHTTPRequestHandler):
             self.log_queue.put(f"当前上下文数: {len(self._contexts[client_id]['queue'])}")
             self.log_queue.put(f"完整消息列表: {messages}")
 
-            # 注意这里增加了 temperature 参数
+            # 增加 temperature 参数
             response = client.chat.completions.create(
                 model=config['model_name'],
                 messages=messages,
@@ -172,39 +172,43 @@ class TranslationApp:
         config_frame = ttk.LabelFrame(main_frame, text="API配置")
         config_frame.grid(row=0, column=0, sticky="nsew", pady=5)
 
-        # 基础配置项（增加温度设置项）
-        entries = [
+        # 前三行：API地址、API密钥、模型名称（各占一行）
+        basic_entries = [
             ('API地址:', 'api_address', 0),
             ('API密钥:', 'api_key', 1),
-            ('模型名称:', 'model_name', 2),
-            ('监听端口:', 'port', 3),
-            ('温度:', 'temperature', 4)
+            ('模型名称:', 'model_name', 2)
         ]
-        
-        for text, var_name, row in entries:
+        for text, var_name, row in basic_entries:
             ttk.Label(config_frame, text=text).grid(row=row, column=0, sticky="e", pady=2)
-            if var_name == 'temperature':
-                # 使用 Spinbox 设置温度，范围0.0~1.0，步长0.1
-                entry = ttk.Spinbox(config_frame, from_=0.0, to=1.0, increment=0.1, width=5)
-            else:
-                entry = ttk.Entry(config_frame)
-            entry.grid(row=row, column=1, padx=5, pady=2, sticky="ew")
+            entry = ttk.Entry(config_frame)
+            entry.grid(row=row, column=1, padx=5, pady=2, sticky="ew", columnspan=2)
             setattr(self, var_name, entry)
 
-        # 系统提示框（调整行号）
-        ttk.Label(config_frame, text="系统提示:").grid(row=5, column=0, sticky="ne", pady=2)
+        # 新增一行，横向排列“监听端口”、“温度”和“上下文数量”
+        port_frame = ttk.Frame(config_frame)
+        port_frame.grid(row=3, column=0, columnspan=3, sticky="w", pady=2)
+        # 监听端口
+        ttk.Label(port_frame, text="监听端口:").grid(row=0, column=0, padx=(0, 2))
+        self.port = ttk.Entry(port_frame, width=8)
+        self.port.grid(row=0, column=1, padx=(0, 10))
+        # 温度
+        ttk.Label(port_frame, text="温度:").grid(row=0, column=2, padx=(0, 2))
+        self.temperature = ttk.Spinbox(port_frame, from_=0.0, to=1.0, increment=0.1, width=5)
+        self.temperature.grid(row=0, column=3, padx=(0, 10))
+        # 上下文数量
+        ttk.Label(port_frame, text="上下文数量:").grid(row=0, column=4, padx=(0, 2))
+        self.context_num = ttk.Spinbox(port_frame, from_=0, to=10, width=5)
+        self.context_num.grid(row=0, column=5)
+
+        # 系统提示框（放在横排配置项下方）
+        ttk.Label(config_frame, text="系统提示:").grid(row=4, column=0, sticky="ne", pady=2)
         self.system_prompt = scrolledtext.ScrolledText(config_frame, height=8, wrap=tk.WORD)
-        self.system_prompt.grid(row=5, column=1, padx=5, pady=5, sticky="nsew")
+        self.system_prompt.grid(row=4, column=1, padx=5, pady=5, sticky="nsew", columnspan=2)
 
-        # 前置文本框（调整行号）
-        ttk.Label(config_frame, text="前置文本:").grid(row=6, column=0, sticky="e", pady=2)
+        # 前置文本框
+        ttk.Label(config_frame, text="前置文本:").grid(row=5, column=0, sticky="e", pady=2)
         self.pre_prompt = ttk.Entry(config_frame)
-        self.pre_prompt.grid(row=6, column=1, padx=5, pady=2, sticky="ew")
-
-        # 上下文数量设置（调整行号）
-        ttk.Label(config_frame, text="上下文数量:").grid(row=7, column=0, sticky="e", pady=2)
-        self.context_num = ttk.Spinbox(config_frame, from_=0, to=10, width=5)
-        self.context_num.grid(row=7, column=1, padx=5, pady=2, sticky="w")
+        self.pre_prompt.grid(row=5, column=1, padx=5, pady=2, sticky="ew", columnspan=2)
 
         # 按钮区域
         btn_frame = ttk.Frame(main_frame)
@@ -216,7 +220,6 @@ class TranslationApp:
             ('测试配置', self.test_config),
             ('保存配置', self.save_config),
         ]
-        
         for text, cmd in buttons:
             btn = ttk.Button(btn_frame, text=text, command=cmd)
             btn.pack(side="left", padx=5)
@@ -234,7 +237,7 @@ class TranslationApp:
         main_frame.columnconfigure(0, weight=1)
         main_frame.rowconfigure(2, weight=1)
         config_frame.columnconfigure(1, weight=1)
-        config_frame.rowconfigure(5, weight=1)
+        config_frame.rowconfigure(4, weight=1)
 
     def load_config(self):
         """加载配置到界面"""
