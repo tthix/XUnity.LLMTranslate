@@ -10,8 +10,8 @@ import queue
 from collections import deque
 import hashlib
 import requests  # 用于获取模型列表
-import re  # 新增，用于过滤思维链
-import time  # 新增，用于超时和重试
+import re  # 用于过滤思维链
+import time  # 用于超时和重试
 
 class ConfigManager:
     """配置管理器，负责配置文件的读写操作"""
@@ -171,7 +171,6 @@ class TranslationHandler(BaseHTTPRequestHandler):
     def create_handler(cls, get_config_func, log_queue):
         return lambda *args, **kwargs: cls(get_config_func, log_queue, *args, **kwargs)
 
-
 class TranslationApp:
     """主应用程序GUI"""
     def __init__(self, master):
@@ -245,6 +244,7 @@ class TranslationApp:
             ('停止服务', self.stop_server),
             ('测试配置', self.test_config),
             ('保存配置', self.save_config),
+            ('导出日志', self.export_log)  # 新增按钮
         ]
         for text, cmd in buttons:
             btn = ttk.Button(btn_frame, text=text, command=cmd)
@@ -371,6 +371,16 @@ class TranslationApp:
         """保存当前配置"""
         ConfigManager().save_config(self.get_config())
         self.log_queue.put("配置已保存")
+
+    def export_log(self):
+        """导出日志到文件"""
+        try:
+            log_content = self.log_area.get("1.0", "end-1c")  # 获取日志框中的所有文本
+            with open("run_log.txt", "w", encoding="utf-8") as f:
+                f.write(log_content)
+            self.log_queue.put("日志已导出到 run_log.txt")
+        except Exception as e:
+            self.log_queue.put(f"导出日志失败：{str(e)}")
 
     def toggle_controls(self, running):
         """切换控件状态"""
