@@ -18,7 +18,7 @@ class ConfigManager:
     def __init__(self, filename='config.ini'):
         self.filename = filename
         self.config = configparser.ConfigParser()
-        self.config.read(filename)
+        self.config.read(filename, encoding='utf-8')  # 指定读取时的编码为UTF-8
 
     def save_config(self, settings):
         """保存配置到文件"""
@@ -26,7 +26,8 @@ class ConfigManager:
             self.config.add_section('Settings')
         for key, value in settings.items():
             self.config.set('Settings', key, str(value))
-        with open(self.filename, 'w') as f:
+        # 使用utf-8编码保存配置文件
+        with open(self.filename, 'w', encoding='utf-8') as f:
             self.config.write(f)
 
     def load_config(self):
