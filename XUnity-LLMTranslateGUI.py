@@ -11,6 +11,7 @@ from collections import deque
 import hashlib
 import requests  # 用于获取模型列表
 import re  # 新增，用于过滤思维链
+import time  # 新增，用于超时和重试
 
 class ConfigManager:
     """配置管理器，负责配置文件的读写操作"""
@@ -59,101 +60,116 @@ class TranslationHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         """处理GET请求"""
-        try:
-            parsed = urllib.parse.urlparse(self.path)
-            query = urllib.parse.parse_qs(parsed.query)
+        retry_count = 0
+        max_retries = 5
+        timeout = 60  # 设置超时为60秒
 
-            if parsed.path != "/":
-                self.send_response(404)
-                self.send_header('Content-type', 'text/plain; charset=utf-8')
-                self.end_headers()
-                self.wfile.write("404 Not Found".encode('utf-8'))
-                return
+        while retry_count < max_retries:
+            try:
+                start_time = time.time()  # 记录开始时间
+                parsed = urllib.parse.urlparse(self.path)
+                query = urllib.parse.parse_qs(parsed.query)
 
-            text = query.get('text', [''])[0].strip()
-            if not text:
-                self.send_response(200)
-                self.end_headers()
-                return
+                if parsed.path != "/":
+                    self.send_response(404)
+                    self.send_header('Content-type', 'text/plain; charset=utf-8')
+                    self.end_headers()
+                    self.wfile.write("404 Not Found".encode('utf-8'))
+                    return
 
-            self.log_queue.put(f"收到请求: {text}")
+                text = query.get('text', [''])[0].strip()
+                if not text:
+                    self.send_response(200)
+                    self.end_headers()
+                    return
 
-            config = self.get_config()
-            client = OpenAI(
-                base_url=config['api_address'],
-                api_key=config['api_key']
-            )
+                self.log_queue.put(f"收到请求: {text}")
 
-            # 获取或创建客户端上下文
-            client_id = self.get_client_id()
-            with self._lock:
-                if client_id not in self._contexts:
-                    self._contexts[client_id] = {
-                        'queue': deque(maxlen=config['context_num']),
-                        'maxlen': config['context_num']
-                    }
-                else:
-                    # 动态调整队列长度
-                    if self._contexts[client_id]['maxlen'] != config['context_num']:
-                        new_queue = deque(
-                            self._contexts[client_id]['queue'],
-                            maxlen=config['context_num']
-                        )
-                        self._contexts[client_id] = {
-                            'queue': new_queue,
-                            'maxlen': config['context_num']
-                        }
-
-            # 构建消息列表
-            messages = [{"role": "system", "content": config['system_prompt']}]
-            
-            # 添加上下文历史
-            with self._lock:
-                for user_content, assistant_content in self._contexts[client_id]['queue']:
-                    messages.append({"role": "user", "content": user_content})
-                    messages.append({"role": "assistant", "content": assistant_content})
-
-            # 添加当前请求
-            current_user_content = f"{config['pre_prompt']}{text}"
-            messages.append({"role": "user", "content": current_user_content})
-
-            # 调试日志
-            self.log_queue.put(f"当前上下文数: {len(self._contexts[client_id]['queue'])}")
-            self.log_queue.put(f"完整消息列表: {messages}")
-
-            # 增加 temperature 参数
-            response = client.chat.completions.create(
-                model=config['model_name'],
-                messages=messages,
-                temperature=config['temperature']
-            )
-            # 这里如果返回结果格式异常，会触发异常
-            translated = response.choices[0].message.content
-
-            # 过滤掉思维链，删除所有 <think>...</think> 标签内的内容
-            translated = re.sub(r'<think>.*?</think>', '', translated, flags=re.DOTALL).strip()
-
-            # 更新上下文队列
-            with self._lock:
-                self._contexts[client_id]['queue'].append(
-                    (current_user_content, translated)
+                config = self.get_config()
+                client = OpenAI(
+                    base_url=config['api_address'],
+                    api_key=config['api_key']
                 )
 
-            self.send_response(200)
-            self.send_header('Content-type', 'text/plain; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(translated.encode('utf-8'))
-            self.log_queue.put(f"翻译结果: {translated}")
+                # 获取或创建客户端上下文
+                client_id = self.get_client_id()
+                with self._lock:
+                    if client_id not in self._contexts:
+                        self._contexts[client_id] = {
+                            'queue': deque(maxlen=config['context_num']),
+                            'maxlen': config['context_num']
+                        }
+                    else:
+                        # 动态调整队列长度
+                        if self._contexts[client_id]['maxlen'] != config['context_num']:
+                            new_queue = deque(
+                                self._contexts[client_id]['queue'],
+                                maxlen=config['context_num']
+                            )
+                            self._contexts[client_id] = {
+                                'queue': new_queue,
+                                'maxlen': config['context_num']
+                            }
 
-        except Exception as e:
-            self.send_response(500)
-            self.end_headers()
-            self.wfile.write(f"服务器错误: {str(e)}".encode('utf-8'))
-            self.log_queue.put(f"处理错误: {str(e)}")
+                # 构建消息列表
+                messages = [{"role": "system", "content": config['system_prompt']}]
+
+                # 添加上下文历史
+                with self._lock:
+                    for user_content, assistant_content in self._contexts[client_id]['queue']:
+                        messages.append({"role": "user", "content": user_content})
+                        messages.append({"role": "assistant", "content": assistant_content})
+
+                # 添加当前请求
+                current_user_content = f"{config['pre_prompt']}{text}"
+                messages.append({"role": "user", "content": current_user_content})
+
+                # 调试日志
+                self.log_queue.put(f"当前上下文数: {len(self._contexts[client_id]['queue'])}")
+                self.log_queue.put(f"完整消息列表: {messages}")
+
+                # 增加 temperature 参数
+                response = client.chat.completions.create(
+                    model=config['model_name'],
+                    messages=messages,
+                    temperature=config['temperature']
+                )
+                # 如果返回结果格式异常，会触发异常
+                translated = response.choices[0].message.content
+
+                # 过滤掉思维链，删除所有 <think>...</think> 标签内的内容
+                translated = re.sub(r'<think>.*?</think>', '', translated, flags=re.DOTALL).strip()
+
+                # 更新上下文队列
+                with self._lock:
+                    self._contexts[client_id]['queue'].append(
+                        (current_user_content, translated)
+                    )
+
+                # 检查是否超过超时时间，如果是，则重试
+                if time.time() - start_time > timeout:
+                    raise TimeoutError("模型响应超时")
+
+                self.send_response(200)
+                self.send_header('Content-type', 'text/plain; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(translated.encode('utf-8'))
+                self.log_queue.put(f"翻译结果: {translated}")
+                return
+
+            except (TimeoutError, Exception) as e:
+                retry_count += 1
+                if retry_count >= max_retries:
+                    self.log_queue.put(f"重试次数达到最大值，停止服务: {str(e)}")
+                    self.stop_server()
+                    return
+                self.log_queue.put(f"请求失败，正在重试 {retry_count}/{max_retries}: {str(e)}")
+                time.sleep(5)  # 等待5秒后重试
 
     @classmethod
     def create_handler(cls, get_config_func, log_queue):
         return lambda *args, **kwargs: cls(get_config_func, log_queue, *args, **kwargs)
+
 
 class TranslationApp:
     """主应用程序GUI"""
