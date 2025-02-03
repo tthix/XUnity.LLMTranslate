@@ -1,4 +1,8 @@
-Flask
-openai
-flask-caching
-tenacity
+# OpenAI Python 客户端库，用于访问 OpenAI API
+openai>=0.27.0
+
+# Requests，用于发起 HTTP 请求（例如获取模型列表）
+requests>=2.25.1
+
+# ttkbootstrap，用于美化 tkinter 界面
+ttkbootstrap>=0.5.1

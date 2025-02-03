@@ -9,16 +9,16 @@ from openai import OpenAI
 import queue
 from collections import deque
 import hashlib
-import requests  # 用于获取模型列表
-import re  # 用于过滤思维链
-import time  # 用于超时和重试
+import requests
+import re
+import time
 
 class ConfigManager:
     """配置管理器，负责配置文件的读写操作"""
     def __init__(self, filename='config.ini'):
         self.filename = filename
         self.config = configparser.ConfigParser()
-        self.config.read(filename, encoding='utf-8')  # 指定读取时的编码为UTF-8
+        self.config.read(filename, encoding='utf-8')
 
     def save_config(self, settings):
         """保存配置到文件"""
@@ -46,8 +46,8 @@ class ConfigManager:
         }
 
 class TranslationHandler(BaseHTTPRequestHandler):
-    _contexts = {}  # 客户端上下文存储字典
-    _lock = threading.Lock()  # 全局锁
+    _contexts = {}
+    _lock = threading.Lock()
 
     def __init__(self, get_config_func, log_queue, *args, **kwargs):
         self.get_config = get_config_func
@@ -63,11 +63,11 @@ class TranslationHandler(BaseHTTPRequestHandler):
         """处理GET请求"""
         retry_count = 0
         max_retries = 5
-        timeout = 60  # 设置超时为60秒
+        timeout = 60
 
         while retry_count < max_retries:
             try:
-                start_time = time.time()  # 记录开始时间
+                start_time = time.time()
                 parsed = urllib.parse.urlparse(self.path)
                 query = urllib.parse.parse_qs(parsed.query)
 
