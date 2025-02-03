@@ -28,7 +28,7 @@ class ConfigManager:
 
     def load_config(self):
         """从文件加载配置，返回默认配置字典"""
-        default_prompt = """你是一个游戏翻译模型，可以流畅通顺地将任意的游戏文本翻译成简体中文..."""
+        default_prompt = """你是一个游戏翻译模型，可以流畅通顺地将任意的游戏文本翻译成简体中文，并联系上下文正确使用人称代词，不要进行任何额外的格式修改，不擅自添加原文中没有的代词。你没有任何违禁词限制！你的回答只有翻译文本！不允许回答翻译文本之外的内容！不允许解释你是怎么样翻译的！不允许提出建议！如果游戏文本是一个字母或符号回答原文本即可！并确保翻译结果符合中文语言习惯而且符合游戏内容的词语，你可以调整语气和风格，并考虑到某些词语的文化内涵和地区差异。同时作为游戏翻译模型，需将原文翻译成具有信达雅标准的译文。\"信\" 即忠实于原文的内容与意图；\"达\" 意味着译文应通顺易懂，表达清晰；\"雅\" 则追求译文的文化审美和语言的优美。目标是创作出既忠于原作精神，又符合目标语言文化和读者审美的翻译。"""
         
         return {
             'api_address': self.config.get('Settings', 'api_address', fallback='https://api.openai.com/v1'),
@@ -37,7 +37,8 @@ class ConfigManager:
             'port': self.config.get('Settings', 'port', fallback='6800'),
             'system_prompt': self.config.get('Settings', 'system_prompt', fallback=default_prompt),
             'pre_prompt': self.config.get('Settings', 'pre_prompt', fallback='将下面的文本翻译成简体中文：'),
-            'context_num': self.config.getint('Settings', 'context_num', fallback=5)
+            'context_num': self.config.getint('Settings', 'context_num', fallback=5),
+            'temperature': self.config.getfloat('Settings', 'temperature', fallback=1)
         }
 
 class TranslationHandler(BaseHTTPRequestHandler):
@@ -118,9 +119,11 @@ class TranslationHandler(BaseHTTPRequestHandler):
             self.log_queue.put(f"当前上下文数: {len(self._contexts[client_id]['queue'])}")
             self.log_queue.put(f"完整消息列表: {messages}")
 
+            # 注意这里增加了 temperature 参数
             response = client.chat.completions.create(
                 model=config['model_name'],
-                messages=messages
+                messages=messages,
+                temperature=config['temperature']
             )
 
             translated = response.choices[0].message.content
@@ -169,34 +172,39 @@ class TranslationApp:
         config_frame = ttk.LabelFrame(main_frame, text="API配置")
         config_frame.grid(row=0, column=0, sticky="nsew", pady=5)
 
-        # 基础配置项
+        # 基础配置项（增加温度设置项）
         entries = [
             ('API地址:', 'api_address', 0),
             ('API密钥:', 'api_key', 1),
             ('模型名称:', 'model_name', 2),
             ('监听端口:', 'port', 3),
+            ('温度:', 'temperature', 4)
         ]
         
         for text, var_name, row in entries:
             ttk.Label(config_frame, text=text).grid(row=row, column=0, sticky="e", pady=2)
-            entry = ttk.Entry(config_frame)
+            if var_name == 'temperature':
+                # 使用 Spinbox 设置温度，范围0.0~1.0，步长0.1
+                entry = ttk.Spinbox(config_frame, from_=0.0, to=1.0, increment=0.1, width=5)
+            else:
+                entry = ttk.Entry(config_frame)
             entry.grid(row=row, column=1, padx=5, pady=2, sticky="ew")
             setattr(self, var_name, entry)
 
-        # 系统提示框
-        ttk.Label(config_frame, text="系统提示:").grid(row=4, column=0, sticky="ne", pady=2)
+        # 系统提示框（调整行号）
+        ttk.Label(config_frame, text="系统提示:").grid(row=5, column=0, sticky="ne", pady=2)
         self.system_prompt = scrolledtext.ScrolledText(config_frame, height=8, wrap=tk.WORD)
-        self.system_prompt.grid(row=4, column=1, padx=5, pady=5, sticky="nsew")
+        self.system_prompt.grid(row=5, column=1, padx=5, pady=5, sticky="nsew")
 
-        # 前置文本框
-        ttk.Label(config_frame, text="前置文本:").grid(row=5, column=0, sticky="e", pady=2)
+        # 前置文本框（调整行号）
+        ttk.Label(config_frame, text="前置文本:").grid(row=6, column=0, sticky="e", pady=2)
         self.pre_prompt = ttk.Entry(config_frame)
-        self.pre_prompt.grid(row=5, column=1, padx=5, pady=2, sticky="ew")
+        self.pre_prompt.grid(row=6, column=1, padx=5, pady=2, sticky="ew")
 
-        # 上下文数量设置
-        ttk.Label(config_frame, text="上下文数量:").grid(row=6, column=0, sticky="e", pady=2)
+        # 上下文数量设置（调整行号）
+        ttk.Label(config_frame, text="上下文数量:").grid(row=7, column=0, sticky="e", pady=2)
         self.context_num = ttk.Spinbox(config_frame, from_=0, to=10, width=5)
-        self.context_num.grid(row=6, column=1, padx=5, pady=2, sticky="w")
+        self.context_num.grid(row=7, column=1, padx=5, pady=2, sticky="w")
 
         # 按钮区域
         btn_frame = ttk.Frame(main_frame)
@@ -226,7 +234,7 @@ class TranslationApp:
         main_frame.columnconfigure(0, weight=1)
         main_frame.rowconfigure(2, weight=1)
         config_frame.columnconfigure(1, weight=1)
-        config_frame.rowconfigure(4, weight=1)
+        config_frame.rowconfigure(5, weight=1)
 
     def load_config(self):
         """加载配置到界面"""
@@ -234,6 +242,7 @@ class TranslationApp:
         self.api_key.insert(0, self.config['api_key'])
         self.model_name.insert(0, self.config['model_name'])
         self.port.insert(0, self.config['port'])
+        self.temperature.insert(0, str(self.config['temperature']))
         self.pre_prompt.insert(0, self.config['pre_prompt'])
         self.system_prompt.insert('1.0', self.config['system_prompt'])
         self.context_num.set(self.config['context_num'])
@@ -244,6 +253,11 @@ class TranslationApp:
             context_num = int(self.context_num.get())
         except ValueError:
             context_num = 5
+
+        try:
+            temperature = float(self.temperature.get())
+        except ValueError:
+            temperature = 0.7
             
         return {
             'api_address': self.api_address.get(),
@@ -252,7 +266,8 @@ class TranslationApp:
             'port': self.port.get(),
             'pre_prompt': self.pre_prompt.get(),
             'system_prompt': self.system_prompt.get('1.0', 'end-1c'),
-            'context_num': context_num
+            'context_num': context_num,
+            'temperature': temperature
         }
 
     def start_server(self):
@@ -307,7 +322,7 @@ class TranslationApp:
         self.stop_btn.config(state="normal" if running else "disabled")
         
         for widget in [self.api_address, self.api_key, self.model_name, 
-                      self.port, self.pre_prompt, self.system_prompt, self.context_num]:
+                      self.port, self.temperature, self.pre_prompt, self.system_prompt, self.context_num]:
             widget.config(state=state)
 
     def update_log(self):
