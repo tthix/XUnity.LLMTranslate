@@ -28,13 +28,13 @@ jobs:
       run: pip install pyinstaller
 
     - name: Build executable
-      run: pyinstaller --onefile XUnity-LLMTranslate.py
+      run: pyinstaller --onefile XUnity-LLMTranslateGUI.py
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4  # 使用最新版本的 upload-artifact 动作
       with:
-        name: XUnity-LLMTranslate
-        path: dist/XUnity-LLMTranslate.exe  # Windows 下的 exe 文件路径
+        name: XUnity-LLMTranslateGUI
+        path: dist/XUnity-LLMTranslateGUI.exe  # Windows 下的 exe 文件路径
 
   release:
     needs: build
@@ -44,7 +44,7 @@ jobs:
     - name: Download artifact
       uses: actions/download-artifact@v4  # 使用最新版本的 download-artifact 动作
       with:
-        name: XUnity-LLMTranslate
+        name: XUnity-LLMTranslateGUI
         path: dist
 
     - name: Generate tag name
@@ -71,6 +71,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/XUnity-LLMTranslate.exe  # Windows 下的 exe 文件路径
-        asset_name: XUnity-LLMTranslate.exe
+        asset_path: dist/XUnity-LLMTranslateGUI.exe  # Windows 下的 exe 文件路径
+        asset_name: XUnity-LLMTranslateGUI.exe
         asset_content_type: application/octet-stream
