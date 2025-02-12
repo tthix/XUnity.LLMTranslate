@@ -115,4 +115,3 @@ text = urllib.parse.quote(urllib.parse.quote("こんにちは"))
 
 ## 📜 协议授权
 本项目基于 MIT 协议开放使用，允许商业和非商业用途的二次开发。
-```
