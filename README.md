@@ -1,6 +1,6 @@
 # XUnity.LLMTranslate
 
-[![Stars](https://img.shields.io/github/stars/yourusername/XUnity.LLMTranslate?style=social)](https://github.com/yourusername/XUnity.LLMTranslate/stargazers) 
+[![Stars](https://img.shields.io/github/stars/HanFengRuYue/XUnity.LLMTranslate?style=social)](https://github.com/HanFengRuYue/XUnity.LLMTranslate/stargazers) 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 通过大语言模型实现高效游戏文本翻译的Python解决方案，专为XUnity.AutoTranslator设计的多语言支持拓展。
