@@ -19,14 +19,11 @@
 ### 安装依赖
 ```bash
 pip install -r requirements.txt
-
-# 额外推荐安装（可选）
-pip install ttkbootstrap  # 更美观的界面支持
 ```
 
 ### 启动服务
 ```python
-python main.py
+python XUnity-LLMTranslateGUI.py
 ```
 
 ## 🌐 使用方式
