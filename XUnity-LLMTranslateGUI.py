@@ -316,7 +316,7 @@ class TranslationServiceApp:
         self.current_theme = self.detect_windows_theme()
         
         # 创建主窗口并应用相应主题
-        self.root = ttk.Window(title="XUnity大模型翻译v3", themename=self.current_theme)
+        self.root = ttk.Window(title="XUnity大模型翻译ver.3", themename=self.current_theme)
         
         self.root.geometry("800x900")
         
