@@ -20,7 +20,7 @@ import winreg  # 添加winreg模块用于读取Windows注册表
 # 默认配置
 DEFAULT_CONFIG = {
     "api_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    "api_key": "",
+    "api_key": "sk-1111111111111111111",
     "model_name": "qwen-plus",
     "temperature": 1.0,
     "max_tokens": 4096,
@@ -499,8 +499,8 @@ class TranslationServiceApp:
         
         self.history_status_label = ttk.Label(
             history_frame,
-            text="当前翻译上下文: 0组",
-            font=default_font
+            text="翻译上下文: 0组",
+            font=bold_font
         )
         self.history_status_label.pack(side=tk.LEFT, padx=5)
         
@@ -958,7 +958,7 @@ class TranslationServiceApp:
 
     def clear_conversation_history(self):
         self.conversation_history = []
-        self.history_status_label.config(text="当前翻译上下文: 0组")
+        self.history_status_label.config(text="翻译上下文: 0组")
         self.log("翻译上下文已清除")
 
     def update_conversation_history(self, user_text, ai_response):
@@ -981,7 +981,7 @@ class TranslationServiceApp:
             
         history_length = len(self.conversation_history) // 2
         self.log(f"当前翻译上下文记录：{history_length}组")
-        self.history_status_label.config(text=f"当前翻译上下文: {history_length}组")
+        self.history_status_label.config(text=f"翻译上下文: {history_length}组")
 
     def toggle_server(self):
         if self.is_server_running:

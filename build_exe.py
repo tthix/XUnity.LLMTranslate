@@ -3,7 +3,7 @@
 
 """
 XUnity大模型翻译v3打包脚本
-此脚本用于将XUnity-LLMTranslateGUI.py打包为可执行文件(.exe)
+此脚本用于将模块化的程序打包为可执行文件(.exe)
 
 使用方法:
 1. 安装必要的打包工具：pip install -r requirements.txt
@@ -19,8 +19,8 @@ import time
 import platform
 
 # 配置项
-APP_NAME = "XUnity大模型翻译v3"
-MAIN_SCRIPT = "XUnity-LLMTranslateGUI.py"
+APP_NAME = "XUnity大模型翻译ver3.1"
+MAIN_SCRIPT = "main.py"
 VERSION = "1.0.0"
 
 # 打印欢迎信息
@@ -37,6 +37,14 @@ if not os.path.exists(MAIN_SCRIPT):
     print(f"错误: 找不到主脚本文件 {MAIN_SCRIPT}")
     print("请确保在正确的目录中运行此脚本")
     sys.exit(1)
+
+# 检查模块化目录是否存在
+required_dirs = ["core", "ui"]
+for directory in required_dirs:
+    if not os.path.isdir(directory):
+        print(f"错误: 找不到必要的目录 {directory}")
+        print("请确保在正确的目录中运行此脚本")
+        sys.exit(1)
 
 # 确保PyInstaller已安装
 try:
@@ -69,12 +77,8 @@ for package in required_packages:
             print(f"请尝试手动安装: pip install {package}")
             sys.exit(1)
 
-# 询问是否继续
-print("\n所有依赖检查完毕，准备开始打包")
-choice = input("是否继续? (y/n): ").strip().lower()
-if choice != 'y' and choice != '':
-    print("打包已取消")
-    sys.exit(0)
+# 直接开始打包，无需用户确认
+print("\n所有依赖检查完毕，开始打包...")
 
 # 清理旧的构建文件
 print("\n正在清理旧的构建文件...")
@@ -91,10 +95,7 @@ try:
         print(f"- 已删除{spec_file}文件")
 except Exception as e:
     print(f"警告: 清理文件时出错: {str(e)}")
-    choice = input("是否继续? (y/n): ").strip().lower()
-    if choice != 'y' and choice != '':
-        print("打包已取消")
-        sys.exit(0)
+    print("继续打包流程...")
 
 # 构建命令
 print("\n正在准备打包命令...")
@@ -112,10 +113,15 @@ if os.path.exists("config.ini"):
     cmd.extend(["--add-data", "config.ini;."])
     print("包含配置文件: config.ini")
 
+# 添加模块目录
+cmd.extend(["--add-data", "core;core"])
+cmd.extend(["--add-data", "ui;ui"])
+print("包含核心模块目录: core, ui")
+
 # 添加隐式导入的模块，确保它们被包含在打包中
 hidden_imports = ["queue", "concurrent.futures", "tkinter", "ttkbootstrap", 
                   "configparser", "json", "urllib.parse", "re", "socket", 
-                  "http.server", "socketserver"]
+                  "http.server", "socketserver", "threading", "winreg"]
 for module in hidden_imports:
     cmd.extend(["--hidden-import", module])
 

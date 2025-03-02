@@ -22,14 +22,32 @@ echo [√] 已找到Python
 echo.
 
 :: 检查必要的文件
-if not exist XUnity-LLMTranslateGUI.py (
-    echo [错误] 未找到主程序文件 XUnity-LLMTranslateGUI.py
+if not exist main.py (
+    echo [错误] 未找到主程序文件 main.py
     echo 请确保您在正确的目录中运行此脚本
     pause
     exit /b 1
 )
 
 echo [√] 已找到主程序文件
+echo.
+
+:: 检查必要的目录
+if not exist core (
+    echo [错误] 未找到核心模块目录 core
+    echo 请确保您在正确的目录中运行此脚本
+    pause
+    exit /b 1
+)
+
+if not exist ui (
+    echo [错误] 未找到界面模块目录 ui
+    echo 请确保您在正确的目录中运行此脚本
+    pause
+    exit /b 1
+)
+
+echo [√] 已找到所有必要的模块目录
 echo.
 
 echo === 安装必要的依赖 ===
