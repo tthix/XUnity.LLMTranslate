@@ -88,7 +88,7 @@ class TranslationHandler(http.server.BaseHTTPRequestHandler):
         if self.log_callback:
             self.log_callback(message)
     
-    # 更新翻译历史记录
+    # 更新翻译上下文记录
     def update_conversation_history(self, user_text, ai_response):
         if self.app:
             self.app.update_conversation_history(user_text, ai_response)
@@ -209,7 +209,7 @@ class TranslationHandler(http.server.BaseHTTPRequestHandler):
         
         if self.app and self.app.conversation_history:
             history_length = len(self.app.conversation_history) // 2
-            self.log_callback(f"使用当前翻译历史记录: {history_length}组")
+            self.log_callback(f"使用当前翻译上下文记录: {history_length}组")
             messages.extend(self.app.conversation_history)
         
         messages.append({
@@ -345,7 +345,7 @@ class TranslationServiceApp:
         self.api_key_entry.insert(0, self.config["api_key"])
         self.model_name_var.set(self.config["model_name"])
         self.system_prompt_text.insert("1.0", self.config["system_prompt"])
-        self.port_entry.insert(0, self.config["port"])
+        self.port_var.set(self.config["port"])
         self.temperature_var.set(str(self.config["temperature"]))
         self.max_tokens_var.set(str(self.config["max_tokens"]))
         self.context_turns_var.set(str(self.config["context_turns"]))
@@ -461,30 +461,32 @@ class TranslationServiceApp:
             )
         self.get_models_button.grid(row=0, column=1, padx=(5, 0))
         
-        ttk.Label(config_frame, text="监听端口:", font=default_font).grid(row=4, column=0, sticky=tk.W, padx=5, pady=5)
-        self.port_entry = ttk.Entry(config_frame, width=60, font=default_font)
-        self.port_entry.grid(row=4, column=1, sticky=tk.EW, padx=5, pady=5)
-        
         params_frame = ttk.Frame(config_frame)
-        params_frame.grid(row=5, column=0, columnspan=2, sticky=tk.N, padx=5, pady=5)
+        params_frame.grid(row=4, column=0, columnspan=2, sticky=tk.N, padx=5, pady=5)
         
-        for i in range(6):
+        for i in range(8):  # 增加列数以适应监听端口
             params_frame.columnconfigure(i, weight=1)
 
-        ttk.Label(params_frame, text="温度:", font=default_font).grid(row=0, column=0, sticky=tk.E, padx=5, pady=5)
+        # 所有设置居中对齐
+        ttk.Label(params_frame, text="监听端口:", font=default_font).grid(row=0, column=0, sticky=tk.E, padx=5, pady=5)
+        self.port_var = tk.StringVar()
+        self.port_entry = ttk.Entry(params_frame, width=8, font=default_font, textvariable=self.port_var)
+        self.port_entry.grid(row=0, column=1, sticky=tk.W, padx=5)
+
+        ttk.Label(params_frame, text="温度:", font=default_font).grid(row=0, column=2, sticky=tk.E, padx=5, pady=5)
         self.temperature_var = tk.StringVar()
         self.temperature_entry = ttk.Entry(params_frame, width=8, font=default_font, textvariable=self.temperature_var)
-        self.temperature_entry.grid(row=0, column=1, sticky=tk.W, padx=5)
+        self.temperature_entry.grid(row=0, column=3, sticky=tk.W, padx=5)
 
-        ttk.Label(params_frame, text="最大Token数量:", font=default_font).grid(row=0, column=2, sticky=tk.E, padx=5, pady=5)
+        ttk.Label(params_frame, text="最大Token数量:", font=default_font).grid(row=0, column=4, sticky=tk.E, padx=5, pady=5)
         self.max_tokens_var = tk.StringVar()
         self.max_tokens_entry = ttk.Entry(params_frame, width=8, font=default_font, textvariable=self.max_tokens_var)
-        self.max_tokens_entry.grid(row=0, column=3, sticky=tk.W, padx=5)
+        self.max_tokens_entry.grid(row=0, column=5, sticky=tk.W, padx=5)
 
-        ttk.Label(params_frame, text="翻译历史上下文数量:", font=default_font).grid(row=0, column=4, sticky=tk.E, padx=5, pady=5)
+        ttk.Label(params_frame, text="翻译上下文数量:", font=default_font).grid(row=0, column=6, sticky=tk.E, padx=5, pady=5)
         self.context_turns_var = tk.StringVar()
         self.context_turns_entry = ttk.Entry(params_frame, width=8, font=default_font, textvariable=self.context_turns_var)
-        self.context_turns_entry.grid(row=0, column=5, sticky=tk.W, padx=5)
+        self.context_turns_entry.grid(row=0, column=7, sticky=tk.W, padx=5)
         
         prompt_frame = ttk.LabelFrame(main_frame, text="系统提示", padding=10)
         prompt_frame.pack(fill=tk.X, padx=5, pady=5)
@@ -492,12 +494,12 @@ class TranslationServiceApp:
         self.system_prompt_text = scrolledtext.ScrolledText(prompt_frame, wrap=tk.WORD, height=6, font=default_font)
         self.system_prompt_text.pack(fill=tk.X, expand=True, padx=5, pady=5)
         
-        history_frame = ttk.LabelFrame(main_frame, text="翻译历史控制", padding=10)
+        history_frame = ttk.LabelFrame(main_frame, text="翻译上下文控制", padding=10)
         history_frame.pack(fill=tk.X, padx=5, pady=5)
         
         self.history_status_label = ttk.Label(
             history_frame,
-            text="当前翻译历史: 0组",
+            text="当前翻译上下文: 0组",
             font=default_font
         )
         self.history_status_label.pack(side=tk.LEFT, padx=5)
@@ -505,7 +507,7 @@ class TranslationServiceApp:
         try:
             self.clear_history_button = ttk.Button(
                 history_frame,
-                text="清除翻译历史",
+                text="清除翻译上下文",
                 command=self.clear_conversation_history,
                 bootstyle="danger-outline",
                 width=15,
@@ -514,7 +516,7 @@ class TranslationServiceApp:
         except Exception:
             self.clear_history_button = ttk.Button(
                 history_frame,
-                text="清除翻译历史",
+                text="清除翻译上下文",
                 command=self.clear_conversation_history,
                 width=15,
                 cursor="hand2"
@@ -666,7 +668,7 @@ class TranslationServiceApp:
             "api_key": self.api_key_entry.get().strip(),
             "model_name": self.model_name_var.get().strip(),
             "system_prompt": self.system_prompt_text.get("1.0", tk.END).strip(),
-            "port": self.port_entry.get().strip(),
+            "port": self.port_var.get().strip(),
             "temperature": temperature,
             "max_tokens": max_tokens,
             "context_turns": context_turns
@@ -956,8 +958,8 @@ class TranslationServiceApp:
 
     def clear_conversation_history(self):
         self.conversation_history = []
-        self.history_status_label.config(text="当前翻译历史: 0组")
-        self.log("翻译历史已清除")
+        self.history_status_label.config(text="当前翻译上下文: 0组")
+        self.log("翻译上下文已清除")
 
     def update_conversation_history(self, user_text, ai_response):
         self.root.after(0, self._update_history, user_text, ai_response)
@@ -978,8 +980,8 @@ class TranslationServiceApp:
             self.conversation_history = self.conversation_history[-max_turns * 2:]
             
         history_length = len(self.conversation_history) // 2
-        self.log(f"当前翻译历史记录：{history_length}组")
-        self.history_status_label.config(text=f"当前翻译历史: {history_length}组")
+        self.log(f"当前翻译上下文记录：{history_length}组")
+        self.history_status_label.config(text=f"当前翻译上下文: {history_length}组")
 
     def toggle_server(self):
         if self.is_server_running:
