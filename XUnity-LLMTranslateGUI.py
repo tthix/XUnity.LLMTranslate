@@ -15,6 +15,7 @@ from typing import Dict, Any
 import time
 import queue
 import concurrent.futures
+import winreg  # 添加winreg模块用于读取Windows注册表
 
 # 默认配置
 DEFAULT_CONFIG = {
@@ -311,11 +312,12 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 # 主应用程序类
 class TranslationServiceApp:
     def __init__(self):
-        self.root = ttk.Window(title="XUnity大模型翻译v3")
-        try:
-            self.root.style.theme_use("darkly")
-        except Exception as e:
-            print(f"主题设置失败: {str(e)}")
+        # 先检测系统主题
+        self.current_theme = self.detect_windows_theme()
+        
+        # 创建主窗口并应用相应主题
+        self.root = ttk.Window(title="XUnity大模型翻译v3", themename=self.current_theme)
+        
         self.root.geometry("800x900")
         
         self.is_shutting_down = False
@@ -350,7 +352,47 @@ class TranslationServiceApp:
         
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         
+        # 设置Windows主题变化监听器，定期检查主题变化
+        self.check_theme_timer()
+        
         self.update_ui_timer()
+    
+    def detect_windows_theme(self):
+        """检测Windows系统主题是否为暗色模式"""
+        try:
+            # 打开注册表路径
+            registry = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
+            key = winreg.OpenKey(registry, r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize")
+            
+            # 读取AppsUseLightTheme值，0表示暗色模式，1表示亮色模式
+            value, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
+            
+            # 关闭注册表
+            winreg.CloseKey(key)
+            
+            # 根据系统主题返回相应的ttkbootstrap主题
+            if value == 0:  # 暗色模式
+                return "darkly"
+            else:  # 亮色模式
+                return "litera"
+        except Exception as e:
+            print(f"检测系统主题出错: {str(e)}")
+            # 出错时使用默认暗色主题
+            return "darkly"
+    
+    def check_theme_timer(self):
+        """定期检查Windows主题是否变化"""
+        try:
+            new_theme = self.detect_windows_theme()
+            if new_theme != self.current_theme:
+                self.log(f"检测到系统主题变化: {self.current_theme} -> {new_theme}")
+                self.current_theme = new_theme
+                self.root.style.theme_use(new_theme)
+        except Exception as e:
+            self.log(f"切换主题出错: {str(e)}")
+        
+        # 每10秒检查一次主题变化
+        self.root.after(10000, self.check_theme_timer)
     
     def setup_ui(self):
         default_font = ("Segoe UI", 10)
@@ -495,7 +537,7 @@ class TranslationServiceApp:
                 text="重置计数",
                 command=self.reset_token_count,
                 bootstyle="secondary-outline",
-                width=10,
+                width=15,
                 cursor="hand2"
             )
         except Exception:
@@ -503,7 +545,7 @@ class TranslationServiceApp:
                 token_frame,
                 text="重置计数",
                 command=self.reset_token_count,
-                width=10,
+                width=15,
                 cursor="hand2"
             )
         self.reset_token_button.pack(side=tk.RIGHT, padx=5)
