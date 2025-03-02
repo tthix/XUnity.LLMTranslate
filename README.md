@@ -1,117 +1,86 @@
-# XUnity.LLMTranslate
+# XUnity大模型翻译v3
 
-[![Stars](https://img.shields.io/github/stars/HanFengRuYue/XUnity.LLMTranslate?style=social)](https://github.com/HanFengRuYue/XUnity.LLMTranslate/stargazers) 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+这是一个基于大模型API的游戏文本翻译工具。该程序可以接收翻译客户端发送的HTTP请求，调用大模型API进行翻译，并返回翻译结果。
 
-通过大语言模型实现高效游戏文本翻译的Python解决方案，专为XUnity.AutoTranslator设计的多语言支持拓展。
+## 功能特点
 
-## ✨ 主要特性
+- 监听HTTP请求，解析需要翻译的文本
+- 调用大模型API进行翻译（支持多种大模型平台）
+- 自动将中文标点符号转换为英文标点符号
+- 美观的图形用户界面，支持高DPI显示
+- 自动获取平台支持的模型列表
+- 温度、最大Token数和上下文数量的统一控制面板
+- 支持配置保存和加载
+- 服务启动/停止控制
+- API配置测试功能
+- 实时运行日志
+- 翻译历史记录管理
+- Token使用统计
 
-- 🚀 **即插即用** - 与XUnity.AutoTranslator无缝对接
-- 🌍 **多语言适配** - 支持主流大模型（GPT/GLM/ERNIE等）
-- 🔌 **REST API** - 标准化HTTP接口
-- 🧠 **上下文记忆** - 智能处理对话场景文本
-- ⚙️ **可视化配置** - 图形化参数调整界面
-- 📊 **运行日志** - 实时监控翻译状态
+## 安装
 
-## 📦 快速开始
+1. 确保已安装Python 3.8或更高版本
+2. 安装所需依赖：
 
-### 安装依赖
 ```bash
 pip install -r requirements.txt
 ```
 
-### 启动服务
-```python
+## 使用方法
+
+1. 运行程序：
+
+```bash
 python XUnity-LLMTranslateGUI.py
 ```
 
-## 🌐 使用方式
-通过简单GET请求即可调用翻译服务：
+2. 在图形界面中配置：
+   - API URL：大模型API的地址
+   - API Key：访问API所需的密钥
+   - 模型名称：使用的大模型名称（可点击"获取模型列表"自动获取）
+   - 监听端口：服务监听的端口（默认6800）
+   - 温度：控制生成文本的随机性（0.0-2.0）
+   - 最大Token数量：限制API响应长度（默认4096）
+   - 翻译历史上下文数量：保留的历史对话组数（默认5）
+   - 系统提示：发送给大模型的系统角色指令
 
-**基础URL格式**：
+3. 点击"保存配置"按钮保存配置
+4. 点击"测试配置"按钮测试API连接是否正常
+5. 点击"启动服务"按钮启动翻译服务
+
+## API使用
+
+翻译客户端可以通过以下方式发送翻译请求：
+
 ```
-http://localhost:6800/?text={需翻译文本}
-```
-
-### 跨语言调用示例
-
-<details>
-<summary><strong>👉 展开查看多语言调用示例</strong></summary>
-
-#### Python
-```python
-import requests
-
-text = "Attack the enemy!"
-response = requests.get(f"http://localhost:6800/?text={requests.utils.quote(text)}")
-print(response.text)  # 输出：攻击敌人！
-```
-
-#### C#
-```csharp
-using System.Net;
-
-var text = WebUtility.UrlEncode("Game Over");
-using var client = new WebClient();
-var response = client.DownloadString($"http://localhost:6800/?text={text}");
-Console.WriteLine(response);  // 输出：游戏结束
+http://localhost:6800/?text=需要翻译的文本
 ```
 
-#### JavaScript
-```javascript
-const text = encodeURIComponent("Press Start Button");
-fetch(`http://localhost:6800/?text=${text}`)
-  .then(response => response.text())
-  .then(console.log);  // 输出：按下开始按钮
-```
+服务器将返回翻译后的文本。
 
-#### Unity(C#)
-```csharp
-IEnumerator TranslateText(string originalText){
-    string url = $"http://localhost:6800/?text={Uri.EscapeDataString(originalText)}";
-    using UnityWebRequest request = UnityWebRequest.Get(url);
-    yield return request.SendWebRequest();
-    
-    if(request.result == UnityWebRequest.Result.Success){
-        string translated = request.downloadHandler.text;
-        Debug.Log($"翻译结果: {translated}");
-    }
-}
-```
-</details>
+## 支持的大模型平台
 
-## ⚙️ 配置指南
-通过GUI界面可调整以下参数：
+本程序支持符合OpenAI Chat Completions API规范的大模型平台，包括但不限于：
 
-| 参数项           | 默认值           | 说明                                |
-|------------------|------------------|------------------------------------|
-| API地址          | OpenAI官方API     | 支持本地部署的大模型服务地址           |
-| API密钥          | sk-xxx          | 大模型服务的认证密钥                  |
-| 上下文记忆次数    | 5               | 保留的对话历史轮数（0为禁用）          |
-| 温度参数         | 1.0             | 控制输出随机性（0-1值越大越随机）      |
-| 系统提示         | 翻译专用预设     | 调整输出风格的指令模板                |
+- 阿里云通义千问
+- 百度文心一言
+- 讯飞星火
+- OpenAI
+- Anthropic Claude
+- 其他支持兼容OpenAI接口的模型服务
 
-## 🔍 常用调试技巧
+## 优化特性
 
-1. 校验服务是否运行：
-```bash
-curl "http://localhost:6800/?text=TEST"
-```
+- 高效的线程池管理，确保资源正确释放
+- 优化的UI布局，界面简洁直观
+- 强大的错误处理机制
+- 可靠的服务关闭流程，防止程序卡死
+- Token使用统计和管理
+- 翻译历史记录控制
 
-2. 日志观察方法：
-```
-[运行日志]实时显示以下状态：
-✅ 成功请求："收到请求: Hello"
-🛑 错误记录："认证失败：无效的API密钥"
-⚡ 性能监控："处理耗时：1.23s"
-```
+## 注意事项
 
-3. 特殊字符处理建议：
-```python
-# 处理日语需双重编码
-text = urllib.parse.quote(urllib.parse.quote("こんにちは"))
-```
-
-## 📜 协议授权
-本项目基于 MIT 协议开放使用，允许商业和非商业用途的二次开发。
+- 请确保您有足够的API调用权限和配额
+- 根据您使用的大模型平台调整API URL和认证方式
+- 系统提示可以根据需要自定义，以获得更好的翻译效果
+- 如API无法正常调用，可尝试在地址后面加上/v1 
