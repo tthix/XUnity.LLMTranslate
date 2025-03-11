@@ -1,0 +1,282 @@
+/* style.css */
+:root {
+    /* Light Theme Colors */
+    --body-bg: #f8f9fa;
+    --container-bg: #ffffff;
+    --panel-bg: #ffffff;
+    --text-color: #343a40;
+    --heading-color: #212529;
+    --border-color: #ddd;
+    --button-bg: #007bff;
+    --button-hover-bg: #0056b3;
+    --button-text-color: white;
+    --log-bg: #f0f0f0;
+    --log-text-color: #343a40;
+    --error-text-color: #dc3545; /* Error log text color */
+
+    /* Spacing and Layout Variables */
+    --container-padding: 25px;
+    --panel-padding: 20px;
+    --form-group-margin-bottom: 15px;
+    --label-margin-bottom: 8px;
+    --input-padding: 10px;
+    --button-padding-y: 12px;
+    --button-padding-x: 25px;
+    --border-radius: 8px;
+}
+
+/* Dark Theme Colors (using media query) */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --body-bg: #121212; /* Dark background */
+        --container-bg: #1e1e1e; /* Slightly lighter container background */
+        --panel-bg: #252525; /* Darker panel background */
+        --text-color: #e0e0e0; /* Light text color */
+        --heading-color: #ffffff; /* White heading color */
+        --border-color: #555; /* Darker border color */
+        --button-bg: #5865f2; /* Example dark theme button color */
+        --button-hover-bg: #424db7;
+        --button-text-color: white;
+        --log-bg: #2e2e2e; /* Darker log background */
+        --log-text-color: #e0e0e0;
+        --error-text-color: #f8d7da; /* Light error text color on dark bg */
+    }
+}
+
+body {
+    font-family: sans-serif;
+    margin: 0; /* Remove default body margin */
+    padding: 20px; /* Add padding to body for overall spacing */
+    background-color: var(--body-bg);
+    color: var(--text-color);
+    transition: background-color 0.3s, color 0.3s; /* Smooth theme transition */
+    line-height: 1.6; /* Improve text readability */
+}
+
+.container {
+    max-width: 900px; /* Slightly wider container */
+    margin: 20px auto; /* Center container with margin */
+    background-color: var(--container-bg);
+    padding: var(--container-padding);
+    border-radius: var(--border-radius);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); /* More pronounced shadow */
+    transition: background-color 0.3s;
+}
+
+h1 {
+    color: var(--heading-color);
+    transition: color 0.3s;
+    font-size: 2.5em; /* Larger main heading */
+    margin-top: 0; /* Remove top margin for cleaner look */
+    margin-bottom: 20px; /* Add bottom margin */
+    text-align: center; /* Center the main heading */
+}
+
+h2 {
+    color: var(--heading-color);
+    transition: color 0.3s;
+    font-size: 1.8em; /* Slightly larger panel headings */
+    margin-top: 0;
+    margin-bottom: 15px;
+    border-bottom: 2px solid var(--border-color); /* Add a subtle underline to headings */
+    padding-bottom: 5px;
+}
+
+.config-panel, .control-panel, .history-panel, .token-panel, .translation-panel, .log-panel {
+    border: 1px solid var(--border-color);
+    padding: var(--panel-padding);
+    margin-bottom: var(--form-group-margin-bottom); /* Consistent bottom margin */
+    border-radius: var(--border-radius);
+    background-color: var(--panel-bg);
+    transition: border-color 0.3s, background-color 0.3s;
+}
+
+.form-group {
+    margin-bottom: var(--form-group-margin-bottom);
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: var(--label-margin-bottom);
+    font-weight: 500; /* Slightly lighter bold for labels */
+    color: var(--text-color);
+    transition: color 0.3s;
+}
+
+.form-group input[type="text"],
+.form-group input[type="password"],
+.form-group input[type="number"],
+.form-group select,
+.form-group textarea {
+    width: calc(100% - 22px); /* Adjust width to account for padding and border */
+    padding: var(--input-padding);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-sizing: border-box;
+    background-color: var(--body-bg); /* Slightly different input background for contrast */
+    color: var(--text-color);
+    transition: border-color 0.3s, background-color 0.3s, color 0.3s;
+    font-size: 1em; /* Consistent font size for inputs */
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="password"]:focus,
+.form-group input[type="number"]:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none; /* Remove default focus outline */
+    border-color: #007bff; /* Highlight border on focus */
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Add a subtle focus shadow */
+}
+
+
+.form-group textarea {
+    font-family: monospace;
+    white-space: pre-wrap;
+    line-height: 1.4; /* Improve textarea text readability */
+}
+
+.params-group {
+    display: flex; /* Use flexbox for params group */
+    align-items: center; /* Align items vertically in the center */
+    flex-wrap: wrap; /* Allow labels and inputs to wrap on smaller screens */
+    gap: 15px 20px; /* Gap between rows and columns in flexbox */
+}
+
+
+.params-group label, .params-group input {
+    margin-right: 0; /* Remove default right margin */
+    display: inline-block;
+    width: auto;
+}
+
+button {
+    padding: var(--button-padding-y) var(--button-padding-x);
+    border: none;
+    border-radius: var(--border-radius);
+    background-color: var(--button-bg);
+    color: var(--button-text-color);
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s; /* Add transform for button feedback */
+    font-size: 1em;
+}
+
+button:hover {
+    background-color: var(--button-hover-bg);
+    transform: translateY(-2px); /* Slight lift on hover */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Add subtle shadow on hover */
+}
+
+button:active {
+    transform: translateY(0); /* Reset transform on active/click */
+    box-shadow: none; /* Remove shadow on active/click */
+}
+
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed; /* Indicate disabled state */
+    background-color: #6c757d; /* Grey out disabled button */
+    border-color: #6c757d;
+    transform: none; /* Remove hover/active effects when disabled */
+    box-shadow: none;
+}
+
+#log-output {
+    width: calc(100% - 22px);
+    padding: var(--input-padding);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-sizing: border-box;
+    font-family: monospace;
+    white-space: pre-wrap;
+    background-color: var(--log-bg);
+    color: var(--log-text-color);
+    transition: border-color 0.3s, background-color 0.3s, color 0.3s;
+    tab-size: 4; /* Consistent tab size in textarea */
+    font-size: 0.9em; /* Slightly smaller log font size */
+}
+
+#log-output::-webkit-scrollbar {
+    width: 10px; /* Adjust scrollbar width for better visibility */
+    background-color: var(--log-bg);
+}
+
+#log-output::-webkit-scrollbar-thumb {
+    background-color: #aaa; /* Scrollbar thumb color */
+    border-radius: 5px;
+}
+
+#log-output::-webkit-scrollbar-thumb:hover {
+    background-color: #888;
+}
+
+/* Error log styling */
+#log-output .error-log {
+    color: var(--error-text-color); /* Apply error text color */
+    font-weight: bold; /* Make errors stand out */
+}
+
+/* 翻译历史记录样式 */
+#translation-history {
+    border: 1px solid var(--border-color);
+    padding: 10px;
+    border-radius: var(--border-radius);
+    background-color: red; /* 临时设置为红色，用于测试是否显示 */
+    border: 2px solid blue; /* 临时添加蓝色边框，用于测试是否显示 */
+    color: var(--log-text-color); /* 使用日志文本颜色 */
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 0.9em; /* 略小的字体 */
+}
+
+.history-entry {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed var(--border-color);
+}
+
+.history-entry:last-child {
+    border-bottom: none; /* 最后一项不显示虚线 */
+    margin-bottom: 0; /* 最后一项底部margin为0 */
+    padding-bottom: 0; /* 最后一项底部padding为0 */
+}
+
+
+.input-text-history {
+    font-weight: bold;
+    color: var(--text-color); /* 使用普通文本颜色 */
+    margin-bottom: 5px;
+}
+
+.output-text-history {
+    color: var(--text-color); /* 使用普通文本颜色 */
+    margin-bottom: 0;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+        margin: 10px auto;
+    }
+
+    h1 {
+        font-size: 2em;
+    }
+
+    h2 {
+        font-size: 1.5em;
+    }
+
+    .params-group {
+        flex-direction: column; /* Stack params group items on smaller screens */
+        align-items: stretch; /* Stretch items to full width */
+    }
+
+    .params-group label, .params-group input {
+        margin-bottom: 5px; /* Add margin between stacked items */
+        display: block; /* Ensure label and input take full width */
+        width: 100%; /* Full width for label and input */
+    }
+}
