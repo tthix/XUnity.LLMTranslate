@@ -1,7 +1,7 @@
 # 这是基于原项目[XUnity.LLMTranslate](https://github.com/HanFengRuYue/XUnity.LLMTranslate)在Web端的性能改进版本。
 ## 该项目主要是为了方便在服务器上使用，因此去掉了原项目的GUI，改为Web端的API接口并使用HTML作为前端。实现了更快的翻译速度，超低的延迟，较低的资源占用与更好的稳定性。
 
-# [XUnity大模型翻译v3](https://github.com/HanFengRuYue/XUnity.LLMTranslate)
+# 原项目链接：[XUnity大模型翻译v3](https://github.com/HanFengRuYue/XUnity.LLMTranslate)
 
 这是一个基于大模型API的游戏文本翻译工具。该程序可以接收翻译客户端发送的HTTP请求，调用大模型API进行翻译，并返回翻译结果。
 
