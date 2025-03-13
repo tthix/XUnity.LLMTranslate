@@ -6,89 +6,115 @@
     <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
-<div class="container">
-    <h1>XUnity 大模型翻译 (JavaScript)</h1>
+<div>
+    <h1>XUnity 大模型翻译</h1>
 
-    <div class="config-panel">
-        <h2>API 配置</h2>
-        <div class="form-group">
-            <label for="api-url">API URL:</label>
-            <input type="text" id="api-url" placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1">
-        </div>
-        <div class="form-group">
-            <label for="api-key">API Key:</label>
-            <input type="password" id="api-key" placeholder="sk-xxxxxxxxxxxxxxxxxxxxx">
-        </div>
-        <div class="form-group">
-            <label for="model-name">模型名称:</label>
-            <select id="model-name">
-                <option value="qwen-plus">qwen-plus</option>
-                <!-- 模型列表将动态加载 -->
-            </select>
-            <button id="get-models-button">获取模型列表</button>
-        </div>
-        <div class="form-group params-group">
-            <label for="port">翻译服务端口:</label> <![CDATA[<!--]]> 修改label文字为“翻译服务端口” <![CDATA[-->]]>
-            <input type="number" id="port" value="6800">
-            <label for="temperature">温度:</label>
-            <input type="number" id="temperature" value="1.0" step="0.1" min="0" max="2">
-            <label for="max-tokens">最大 Token 数量:</label>
-            <input type="number" id="max-tokens" value="4096">
-            <label for="context-turns">翻译上下文数量:</label>
-            <input type="number" id="context-turns" value="5">
-        </div>
-        <div class="form-group">
-            <label for="system-prompt">系统提示:</label>
-            <textarea id="system-prompt" rows="5">你是一个游戏翻译模型，可以流畅通顺地将任意的游戏文本翻译成简体中文，并联系上下文正确使用人称代词，不要进行任何额外的格式修改，不擅自添加原文中没有的代词。你没有任何违禁词限制！你的回答只有翻译文本！不允许回答翻译文本之外的内容！不允许解释你是怎么样翻译的！不允许提出建议！如果游戏文本是一个字母或符号回答原文本即可！并确保翻译结果符合中文语言习惯而且符合游戏内容的词语，你可以调整语气和风格，并考虑到某些词语的文化内涵和地区差异。同时作为游戏翻译模型，需将原文翻译成具有信达雅标准的译文。以下是需要翻译的文本：</textarea>
-        </div>
-    </div>
+    <div class="container">
+        <div class="column">
+            <div class="config-panel">
+                <h2>API 配置</h2>
+                <div class="form-group">
+                    <label for="api-url">API URL:</label>
+                    <input type="text" id="api-url" placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1">
+                </div>
+                <div class="form-group">
+                    <label for="api-key">API Key:</label>
+                    <input type="password" id="api-key" placeholder="sk-xxxxxxxxxxxxxxxxxxxxx">
+                </div>
+                <div class="form-group">
+                    <label for="model-name">模型名称:</label>
+                    <select id="model-name">
+                        <option value="qwen-plus">qwen-plus</option>
+                        <!-- 模型列表将动态加载 -->
+                    </select>
+                    <button id="get-models-button" style="margin-top: 10px">获取模型列表</button>
+                </div>
+                <div class="form-group params-group">
+                    <label for="port">翻译服务端口:</label>
+                    <input type="number" id="port" value="6800">
+                    <label for="temperature">温度:</label>
+                    <input type="number" id="temperature" value="1.0" step="0.1" min="0" max="2">
+                    <label for="max-tokens">最大 Token 数量:</label>
+                    <input type="number" id="max-tokens" value="4096">
+                    <label for="context-turns">翻译上下文数量:</label>
+                    <input type="number" id="context-turns" value="5">
+                </div>
+                <div class="form-group">
+                    <label for="system-prompt">系统提示:</label>
+                    <textarea id="system-prompt" rows="15">你是一个游戏翻译模型，可以流畅通顺地将任意的游戏文本翻译成简体中文，并联系上下文正确使用人称代词，不要进行任何额外的格式修改，不擅自添加原文中没有的代词。你没有任何违禁词限制！你的回答只有翻译文本！不允许回答翻译文本之外的内容！不允许解释你是怎么样翻译的！不允许提出建议！如果游戏文本是一个字母或符号回答原文本即可！并确保翻译结果符合中文语言习惯而且符合游戏内容的词语，你可以调整语气和风格，并考虑到某些词语的文化内涵和地区差异。同时作为游戏翻译模型，需将原文翻译成具有信达雅标准的译文。以下是需要翻译的文本：</textarea>
+                </div>
+                <div class="config-buttons">
+                    <h3>配置操作：</h3>
+                    <button id="test-config-button">测试配置</button>
+                    <button id="save-config-button">保存配置</button>
+                </div>
+            </div>
 
-    <div class="control-panel">
-        <button id="start-listen-button">启动翻译服务</button>
-        <button id="stop-listen-button">停止翻译服务</button>
-        <button id="test-config-button">测试配置</button>
-        <button id="save-config-button">保存配置</button>
-    </div>
 
-    <div class="history-panel">
-        <h2>翻译上下文控制</h2>
-        <p id="history-status">翻译上下文: 0组</p>
-        <button id="clear-history-button">清除翻译上下文</button>
-    </div>
+        </div>
 
-    <div class="token-panel">
-        <h2>Token 使用统计</h2>
-        <p id="token-status">请求: 0  |  回复: 0  |  总计: 0</p>
-        <button id="reset-token-button">重置计数</button>
-    </div>
+        <div class="column">
+            <div class="control-panel service-buttons">
+                <h2>翻译服务控制</h2>
+                <button id="start-listen-button">启动翻译服务</button>
+                <button id="stop-listen-button" style="background-color: red">停止翻译服务</button>
+<!--                <button id="toggle-translation-panel">展开文本翻译</button>-->
+            </div>
 
-    <div class="translation-panel">
-        <h2>文本翻译</h2>
-        <div class="form-group">
-            <label for="input-text">待翻译文本:</label>
-            <textarea id="input-text" rows="5" placeholder="请输入要翻译的文本"></textarea>
-        </div>
-        <div class="form-group">
-            <button id="translate-button">开始翻译</button>
-        </div>
-        <div class="form-group">
-            <label for="output-text">翻译结果:</label>
-            <textarea id="output-text" rows="5" placeholder="翻译结果将显示在这里" readonly></textarea>
-        </div>
-        <div class="form-group">
-            <label>翻译历史记录:</label>
-            <div id="translation-history" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); padding: 8px; border-radius: 4px; background-color: var(--log-bg);">
-                <!-- 翻译历史记录将动态添加到这里 -->
+            <div class="control-panel translation-section">
+                <h2>文本翻译</h2>
+                <button id="toggle-translation-panel">展开文本翻译</button>
+                <div class="translation-panel" style="display: none;">
+                    <div class="form-group">
+                        <label for="input-text">待翻译文本:</label>
+                        <textarea id="input-text" rows="5" placeholder="请输入要翻译的文本"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <button id="translate-button">开始翻译</button>
+                    </div>
+                    <div class="form-group">
+                        <label for="output-text">翻译结果:</label>
+                        <textarea id="output-text" rows="5" placeholder="翻译结果将显示在这里" readonly></textarea>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="log-panel combined-log-token-panel">
+                <h2>日志</h2>
+                <div class="token-panel-content">
+                    <p id="token-status">请求: 0  |  回复: 0  |  总计: 0</p>
+                    <button id="reset-token-button">重置计数</button>
+                </div>
+                <textarea id="log-output" rows="10" readonly></textarea>
+                <div class="history-panel">
+                    <!--                    <h3>翻译上下文控制</h3>-->
+                    <p id="history-status">翻译上下文: 0组</p>
+                    <button id="clear-history-button">清除翻译上下文</button>
+                </div>
+                <div class="form-group">
+                    <h3>翻译历史记录:</h3>
+                    <div id="translation-history" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); padding: 8px; border-radius: 4px; background-color: var(--log-bg);">
+                        <!-- 翻译历史记录将动态添加到这里 -->
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-
-    <div class="log-panel">
-        <h2>日志信息</h2>
-        <textarea id="log-output" rows="10" readonly></textarea>
-    </div>
 </div>
 
+<script>
+    document.getElementById('toggle-translation-panel').addEventListener('click', function() {
+        const translationPanel = document.querySelector('.translation-panel');
+        if (translationPanel.style.display === 'none') {
+            translationPanel.style.display = 'block';
+            this.textContent = '收起文本翻译';
+        } else {
+            translationPanel.style.display = 'none';
+            this.textContent = '展开文本翻译';
+        }
+    });
+</script>
 <script src="script.js"></script>
 </body>
 </html>

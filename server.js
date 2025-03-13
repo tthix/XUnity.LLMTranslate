@@ -1,9 +1,10 @@
-// server.js (解决方案 2 - 支持翻译历史记录)
+// server.js (解决方案 2 - 支持翻译历史记录 + 本地缓存)
 import open from 'open';
 import express from 'express';
 import cors from 'cors';
 import fetch from 'node-fetch';
 import * as dotenv from 'dotenv';
+import fs from 'fs'; // 引入 fs 模块
 
 dotenv.config();
 
@@ -19,6 +20,7 @@ translateApp.use(express.json());
 
 const webUIPort = process.env.WEB_UI_PORT || 6799;
 const translationServicePort = process.env.PORT || 6800;
+const TRANSLATION_RESULT_FILE = 'translationResult.json'; // 定义本地缓存文件路径
 
 let isServerListening = false;
 let currentConfig = {
@@ -32,24 +34,71 @@ let currentConfig = {
 
 // 新增：用于存储翻译历史记录 (内存存储，服务器重启会丢失)
 const translationHistory = [];
+// 创建一个存储翻译结果的map用于存储翻译结果
+const translationResult = new Map();
+const uncachedTranslations = new Map();
 
 function logMessage(message) {
     const timestamp = new Date().toLocaleTimeString();
     console.log(`[${timestamp}] ${message}`);
 }
 
+// 保存 translationResult 到本地文件
+function saveTranslationResult() {
+    try {
+        // 将 Map 转换为普通对象以便 JSON 序列化
+        const obj = Object.fromEntries(translationResult.entries());
+        fs.writeFileSync(TRANSLATION_RESULT_FILE, JSON.stringify(obj));
+        logMessage(`翻译结果已保存到 ${TRANSLATION_RESULT_FILE}`);
+    } catch (error) {
+        logMessage(`保存翻译结果到文件失败: ${error.message}`);
+        console.error("保存翻译结果错误:", error);
+    }
+}
+
+// 从本地文件加载 translationResult
+function loadTranslationResult() {
+    try {
+        if (fs.existsSync(TRANSLATION_RESULT_FILE)) {
+            const data = fs.readFileSync(TRANSLATION_RESULT_FILE, 'utf-8');
+            const obj = JSON.parse(data);
+            // 将普通对象转换回 Map
+            for (const [key, value] of Object.entries(obj)) {
+                translationResult.set(key, value);
+            }
+            logMessage(`已加载翻译结果，共 ${translationResult.size} 条`);
+        } else {
+            logMessage("未找到翻译结果文件，将创建新文件");
+        }
+    } catch (error) {
+        logMessage(`加载翻译结果文件失败: ${error.message}`);
+        console.error("加载翻译结果错误:", error);
+        // 如果加载失败，保持 translationResult 为空 Map
+    }
+}
+
 // 处理翻译请求 (6800 端口)
 async function handleTranslateRequest(req, res) {
     const textToTranslate = req.query.text;
 
-    if (!textToTranslate || textToTranslate.trim() === "") {
-        return res.status(400).send("翻译失败: 输入文本为空");
+    // if (!textToTranslate || textToTranslate.trim() === "") {
+    //     return res.status(400).send("翻译失败: 输入文本为空");
+    // }
+    if (!textToTranslate || textToTranslate.trim().length < 2) {
+        return res.status(400).json({ success: false, message: "翻译失败: 输入文本太短" });
     }
     if (!isServerListening) {
         return res.status(503).send("翻译失败: 翻译服务未启动");
     }
     if (!currentConfig.api_url || !currentConfig.api_key || !currentConfig.model_name) {
         return res.status(400).send("翻译失败: API配置不完整 (前端配置)");
+    }
+
+    // 新增：检查是否有缓存的翻译结果
+    const cachedResult = translationResult.get(textToTranslate);
+    if (cachedResult) {
+        logMessage(`返回缓存的翻译结果: ${cachedResult.substring(0, 50)}...`);
+        return res.send(cachedResult);
     }
 
     logMessage(`收到翻译请求: ${textToTranslate.substring(0, 50)}... 模型: ${currentConfig.model_name}`);
@@ -126,6 +175,10 @@ async function handleTranslateRequest(req, res) {
             outputText: translatedText.trim()
         };
         translationHistory.unshift(historyEntry); // 添加到历史记录数组的开头
+
+        // 新增：将翻译结果缓存起来
+        translationResult.set(textToTranslate, translatedText.trim());
+        uncachedTranslations.set(textToTranslate, translatedText.trim());
 
         res.send(translatedText.trim());
 
@@ -363,7 +416,7 @@ async function handleGetModelsRequest(req, res) {
 
 app.post('/models', handleGetModelsRequest);
 
-app.post('/stop-server', async (req, res) => { // 保持不变
+app.post('/stop-server', async (req, res) => {
     if (!isServerListening) {
         return res.json({ success: false, message: "翻译服务未在运行，无法停止" });
     }
@@ -372,14 +425,17 @@ app.post('/stop-server', async (req, res) => { // 保持不变
     res.json({ success: true, message: "翻译服务已停止" });
 });
 
-app.get('/health', (req, res) => { // 保持不变
+app.get('/health', (req, res) => {
     res.send({ status: 'OK', message: 'Web Server is running' });
 });
-app.get('/', (req, res) => { // 保持不变
+app.get('/', (req, res) => {
     res.sendFile('index.html', { root: '.' });
 });
 
-const serverInstance = app.listen(webUIPort, () => { // 保持不变
+// 在启动翻译服务之前加载本地缓存
+loadTranslationResult();
+
+const serverInstance = app.listen(webUIPort, () => {
     logMessage(`Web服务器已启动，监听端口 ${webUIPort}`);
     const serverUrl = `http://localhost:${webUIPort}`;
     open(serverUrl).then(() => {
@@ -389,8 +445,16 @@ const serverInstance = app.listen(webUIPort, () => { // 保持不变
     });
 });
 
-const translateServerInstance = translateApp.listen(translationServicePort, () => { // 保持不变
+const translateServerInstance = translateApp.listen(translationServicePort, () => {
     logMessage(`翻译服务已启动，监听端口 ${translationServicePort}`);
 });
+
+// 设置每 10 秒保存一次积累的翻译结果到 translationResult
+setInterval(() => {
+    if (uncachedTranslations.size > 0) {
+        saveTranslationResult();
+        uncachedTranslations.clear();
+    }
+}, 10000);
 
 logMessage(`Web服务器和翻译服务初始化完成，等待手动启动翻译服务监听器...`);

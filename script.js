@@ -25,6 +25,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const translationHistoryDiv = document.getElementById('translation-history');
     console.log("[DEBUG] translationHistoryDiv:", translationHistoryDiv);
 
+    //  添加/修改: 获取 config-panel 元素
+    const configPanel = document.querySelector('.config-panel');
+    //  添加/修改: 获取 config-panel 内的所有输入元素 (input, select, button)
+    const configPanelInputs = configPanel.querySelectorAll('input, select, button, textarea');
+
+
     let promptTokensCount = 0;
     let completionTokensCount = 0;
     let totalTokensCount = 0;
@@ -266,6 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    let lastHistoryCount = 0; //  用于记录上一次的历史记录数量
     //  从服务器获取翻译历史记录并更新前端显示
     async function fetchTranslationHistory() {
         try {
@@ -277,10 +284,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const responseData = await response.json();
             if (responseData.success && responseData.history) {
                 const history = responseData.history;
+                if (history.length === lastHistoryCount) {
+                    return;
+                }
                 translationHistoryDiv.innerHTML = ''; // 清空旧的历史记录
                 history.forEach(entry => {
                     addTranslationEntryToUI(entry.inputText, entry.outputText); // 为每条记录创建UI元素
                 });
+                lastHistoryCount = history.length;
                 logMessage(`成功更新翻译历史记录，共 ${history.length} 条`);
             } else {
                 logMessage(`获取翻译历史记录失败: ${responseData.message || '未知错误'}`, true);
@@ -307,6 +318,22 @@ document.addEventListener('DOMContentLoaded', function() {
         historyEntry.appendChild(outputPara);
 
         translationHistoryDiv.prepend(historyEntry); // 将新的记录添加到最前面，方便查看
+    }
+
+    //  添加/修改: 禁用配置面板的函数
+    function disableConfigPanel() {
+        configPanelInputs.forEach(input => {
+            input.disabled = true;
+        });
+        configPanel.classList.add('config-panel-disabled');
+    }
+
+    //  添加/修改: 启用配置面板的函数
+    function enableConfigPanel() {
+        configPanelInputs.forEach(input => {
+            input.disabled = false;
+        });
+        configPanel.classList.remove('config-panel-disabled');
     }
 
 
@@ -350,6 +377,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 fetchTranslationHistory(); // 启动服务时加载历史记录
                 //  启动定时器，每 3 秒轮询一次历史记录 (时间间隔可以调整)
                 historyPollingInterval = setInterval(fetchTranslationHistory, 3000); //  每 3 秒轮询一次
+                //  添加/修改: 启动服务成功后禁用配置面板
+                disableConfigPanel();
             } else {
                 logMessage(`启动翻译服务失败: ${responseData.message || '未知错误'}`, true);
                 startListenButton.disabled = false;
@@ -401,6 +430,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 //  停止轮询定时器
                 clearInterval(historyPollingInterval);
                 historyPollingInterval = null;
+                //  添加/修改: 停止服务成功后启用配置面板
+                enableConfigPanel();
             } else {
                 logMessage(`停止翻译服务失败: ${responseData.message || '未知错误'}`, true);
                 stopListenButton.disabled = false;
@@ -432,7 +463,7 @@ document.addEventListener('DOMContentLoaded', function() {
     stopListenButton.disabled = true;
     startListenButton.disabled = false;
 
-    inputText.value = "这里是预设的待翻译文本，您可以直接点击“开始翻译”按钮进行翻译，或者修改文本后再翻译。";
+    // inputText.value = "这里是预设的待翻译文本，您可以直接点击“开始翻译”按钮进行翻译，或者修改文本后再翻译。";
 
     getModelsButton.addEventListener('click', getModelList);
     testConfigButton.addEventListener('click', testConfig);
@@ -446,6 +477,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // fetch('/clear-history', { method: 'POST' }); //  (需要服务端实现 /clear-history 接口)
     });
 
+    //  添加/修改: 页面加载时确保配置面板是启用的
+    enableConfigPanel();
 
     logMessage("翻译服务应用已启动 (JavaScript)");
 });
